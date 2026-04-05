@@ -25,7 +25,9 @@ async function bootstrap() {
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Finance Dashboard API')
-    .setDescription('Backend API for role-based finance data processing and dashboard analytics.')
+    .setDescription(
+      'Backend API for role-based finance data processing and dashboard analytics.',
+    )
     .setVersion('1.0')
     .addServer('http://localhost:3000')
     .addBearerAuth()
@@ -54,4 +56,4 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3000);
 }
-bootstrap();
+void bootstrap();

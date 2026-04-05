@@ -14,9 +14,13 @@ describe('AppController', () => {
     appController = app.get<AppController>(AppController);
   });
 
-  describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+  describe('health', () => {
+    it('should return status ok and an ISO timestamp', () => {
+      const health = appController.getHealth();
+
+      expect(health.status).toBe('ok');
+      expect(typeof health.timestamp).toBe('string');
+      expect(Number.isNaN(Date.parse(health.timestamp))).toBe(false);
     });
   });
 });

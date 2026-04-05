@@ -39,7 +39,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
+    const isPasswordValid = await bcrypt.compare(
+      loginDto.password,
+      user.password,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid email or password');
     }
@@ -76,7 +79,9 @@ export class AuthService {
     return user;
   }
 
-  private toAuthResponseUser(user: UserWithPassword): Omit<AuthenticatedUser, 'isActive'> {
+  private toAuthResponseUser(
+    user: UserWithPassword,
+  ): Omit<AuthenticatedUser, 'isActive'> {
     return {
       id: user.id,
       name: user.name,

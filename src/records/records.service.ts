@@ -3,10 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  Prisma,
-  RecordType,
-} from '@prisma/client';
+import { Prisma, RecordType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import {
@@ -72,7 +69,9 @@ export class RecordsService {
         type: createRecordDto.type,
         category: createRecordDto.category,
         date: new Date(createRecordDto.date),
-        ...(createRecordDto.notes !== undefined ? { notes: createRecordDto.notes } : {}),
+        ...(createRecordDto.notes !== undefined
+          ? { notes: createRecordDto.notes }
+          : {}),
         createdById: actorUserId,
       },
       select: RECORD_PUBLIC_SELECT,
@@ -81,7 +80,9 @@ export class RecordsService {
     return record;
   }
 
-  async findAll(filterRecordDto: FilterRecordDto): Promise<RecordsPaginationResponse> {
+  async findAll(
+    filterRecordDto: FilterRecordDto,
+  ): Promise<RecordsPaginationResponse> {
     const page = filterRecordDto.page ?? 1;
     const limit = filterRecordDto.limit ?? 20;
     const sortBy = filterRecordDto.sortBy ?? RecordSortBy.date;
@@ -131,17 +132,28 @@ export class RecordsService {
     return record;
   }
 
-  async update(id: string, updateRecordDto: UpdateRecordDto): Promise<RecordResponse> {
+  async update(
+    id: string,
+    updateRecordDto: UpdateRecordDto,
+  ): Promise<RecordResponse> {
     await this.ensureActiveRecordExists(id);
 
     const data: Prisma.FinancialRecordUpdateManyMutationInput = {
-      ...(updateRecordDto.amount !== undefined ? { amount: updateRecordDto.amount } : {}),
-      ...(updateRecordDto.type !== undefined ? { type: updateRecordDto.type } : {}),
+      ...(updateRecordDto.amount !== undefined
+        ? { amount: updateRecordDto.amount }
+        : {}),
+      ...(updateRecordDto.type !== undefined
+        ? { type: updateRecordDto.type }
+        : {}),
       ...(updateRecordDto.category !== undefined
         ? { category: updateRecordDto.category }
         : {}),
-      ...(updateRecordDto.date !== undefined ? { date: new Date(updateRecordDto.date) } : {}),
-      ...(updateRecordDto.notes !== undefined ? { notes: updateRecordDto.notes } : {}),
+      ...(updateRecordDto.date !== undefined
+        ? { date: new Date(updateRecordDto.date) }
+        : {}),
+      ...(updateRecordDto.notes !== undefined
+        ? { notes: updateRecordDto.notes }
+        : {}),
     };
 
     await this.prisma.financialRecord.updateMany({
@@ -176,7 +188,9 @@ export class RecordsService {
     };
   }
 
-  private buildWhereInput(filterRecordDto: FilterRecordDto): Prisma.FinancialRecordWhereInput {
+  private buildWhereInput(
+    filterRecordDto: FilterRecordDto,
+  ): Prisma.FinancialRecordWhereInput {
     const where: Prisma.FinancialRecordWhereInput = {
       isDeleted: false,
     };

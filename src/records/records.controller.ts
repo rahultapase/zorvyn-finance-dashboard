@@ -64,7 +64,9 @@ export class RecordsController {
 
   @Delete(':id')
   @Roles(Role.admin)
-  async remove(@Param('id') id: string): Promise<{ id: string; isDeleted: boolean }> {
+  async remove(
+    @Param('id') id: string,
+  ): Promise<{ id: string; isDeleted: boolean }> {
     return this.recordsService.remove(id);
   }
 }

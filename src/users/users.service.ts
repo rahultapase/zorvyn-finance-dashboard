@@ -146,7 +146,10 @@ export class UsersService {
     }
   }
 
-  private ensureNotSelfModification(targetUserId: string, actorUserId: string): void {
+  private ensureNotSelfModification(
+    targetUserId: string,
+    actorUserId: string,
+  ): void {
     if (targetUserId === actorUserId) {
       throw new ForbiddenException('You cannot modify your own account');
     }
