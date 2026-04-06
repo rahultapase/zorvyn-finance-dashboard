@@ -1,98 +1,163 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Zorvyn Finance Dashboard API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## Project Overview
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Zorvyn is a backend API for role-based finance data processing. It provides JWT authentication, admin user management, financial record CRUD with soft-delete behavior, and dashboard analytics for summary, trends, and recent activity. Access is controlled through three roles (Viewer, Analyst, Admin), and the API is documented with both Swagger UI and Scalar UI.
 
-## Description
+## Tech Stack
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+| Layer | Choice | Why chosen |
+| --- | --- | --- |
+| Runtime | Node.js 18+ | Stable LTS runtime with strong ecosystem support for NestJS and Prisma. |
+| Framework | NestJS (TypeScript, strict mode) | Modular architecture, built-in dependency injection, and clear controller/service separation. |
+| Database | PostgreSQL | Reliable relational database with strong support for transactional finance workloads. |
+| ORM | Prisma | Type-safe queries, clean schema migrations, and predictable data access patterns. |
+| Authentication | JWT + Passport (`@nestjs/jwt`, `@nestjs/passport`) | Stateless auth that integrates cleanly with guards and role checks. |
+| Validation | `class-validator` + `class-transformer` | Declarative DTO validation and request transformation at API boundaries. |
+| Rate Limiting | `@nestjs/throttler` | Built-in request throttling to protect endpoints like login. |
+| API Docs | `@nestjs/swagger` + `@scalar/nestjs-api-reference` | Swagger for standard OpenAPI docs and Scalar for a modern interactive API reference. |
+| Password Hashing | `bcrypt` | Industry-standard password hashing with configurable salt rounds. |
+| Configuration | `@nestjs/config` + dotenv | Centralized environment-based configuration management. |
+| Local Database Orchestration | Docker Compose | Consistent local PostgreSQL setup for development and review. |
 
-## Project setup
+## Prerequisites
 
-```bash
-$ npm install
-```
+- Node.js 18+
+- Docker Desktop
+- npm
 
-## Compile and run the project
+## Setup Instructions
+
+Run these commands in order:
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+git clone ...
+cp .env.example .env
+docker-compose up -d
+npm install
+npx prisma migrate dev
+npm run seed
+npm run start:dev
 ```
 
-## Run tests
+## Environment Variables
 
-```bash
-# unit tests
-$ npm run test
+| Key | Required | Example | Description |
+| --- | --- | --- | --- |
+| `PORT` | Yes | `3000` | Port used by the NestJS server. |
+| `JWT_SECRET` | Yes | `your_secret_here` | Secret key used to sign and verify JWT access tokens. |
+| `DATABASE_URL` | Yes | `postgresql://finance:finance@localhost:5432/finance_db` | PostgreSQL connection string used by Prisma. |
+| `NODE_ENV` | Yes | `development` | Runtime mode (`development`, `production`, etc.). |
 
-# e2e tests
-$ npm run test:e2e
+## API Documentation Links
 
-# test coverage
-$ npm run test:cov
-```
+- Swagger UI: `/api/docs`
+- Scalar UI: `/api/reference` (modern interactive reference)
+
+## API Overview
+
+All business/API routes are prefixed with `/api/v1`.
+
+### Health
+
+| Method | Path | Summary |
+| --- | --- | --- |
+| GET | `/api/v1/health` | Check API health status |
+
+### Auth
+
+| Method | Path | Summary |
+| --- | --- | --- |
+| POST | `/api/v1/auth/login` | Authenticate user and return JWT token |
+| GET | `/api/v1/auth/me` | Get current authenticated user profile (All roles) |
+
+### Users
+
+| Method | Path | Summary |
+| --- | --- | --- |
+| POST | `/api/v1/users` | Create a new user (Admin only) |
+| GET | `/api/v1/users` | List all users with pagination (Admin only) |
+| GET | `/api/v1/users/:id` | Get a single user by ID (Admin only) |
+| PATCH | `/api/v1/users/:id` | Update a user by ID (Admin only) |
+| DELETE | `/api/v1/users/:id` | Deactivate a user (Admin only) |
+
+### Records
+
+| Method | Path | Summary |
+| --- | --- | --- |
+| POST | `/api/v1/records` | Create a new financial record (Admin only) |
+| GET | `/api/v1/records` | List financial records with filters and pagination (Analyst, Admin) |
+| GET | `/api/v1/records/:id` | Get a single financial record by ID (Analyst, Admin) |
+| PATCH | `/api/v1/records/:id` | Update a financial record (Admin only) |
+| DELETE | `/api/v1/records/:id` | Soft-delete a financial record (Admin only) |
+
+### Dashboard
+
+| Method | Path | Summary |
+| --- | --- | --- |
+| GET | `/api/v1/dashboard/summary` | Get total income, expenses, and net balance (All roles) |
+| GET | `/api/v1/dashboard/recent` | Get 10 most recent financial records (All roles) |
+| GET | `/api/v1/dashboard/weekly` | Get income, expenses, and net balance for last 7 days (All roles) |
+| GET | `/api/v1/dashboard/by-category` | Get totals grouped by category and type (Analyst, Admin) |
+| GET | `/api/v1/dashboard/trends` | Get monthly income and expense trends for the last 6 months (Analyst, Admin) |
+
+## Role Permission Table
+
+| Action | Viewer | Analyst | Admin |
+| --- | --- | --- | --- |
+| login | Yes | Yes | Yes |
+| view own profile | Yes | Yes | Yes |
+| create user | No | No | Yes |
+| list users | No | No | Yes |
+| get user | No | No | Yes |
+| update user | No | No | Yes* |
+| deactivate user | No | No | Yes* |
+| create record | No | No | Yes |
+| list records | No | Yes | Yes |
+| get record | No | Yes | Yes |
+| update record | No | No | Yes |
+| delete record | No | No | Yes |
+| dashboard summary | Yes | Yes | Yes |
+| dashboard recent | Yes | Yes | Yes |
+| dashboard weekly | Yes | Yes | Yes |
+| dashboard by-category | No | Yes | Yes |
+| dashboard trends | No | Yes | Yes |
+
+*Admin cannot modify or deactivate their own account.
+
+## Assumptions Made
+
+- Records are never hard deleted; soft delete uses `isDeleted: true` and excluded records are filtered from reads/aggregations.
+- Pagination defaults to 20 items per page when `page` and `limit` are not provided.
+- JWT access tokens expire in 24 hours.
+- Date query input format is ISO 8601 `YYYY-MM-DD`.
+- Record `createdBy` shape exposed by the API is `{ id, name }` only.
+- Admin users cannot modify or deactivate their own account.
+- Viewer access is limited to dashboard summary, recent, and weekly endpoints.
+- All amounts are stored as `Decimal(12,2)` in PostgreSQL via Prisma.
+
+## Testing
+
+- `npm test` - runs unit tests.
+- `npm run test:e2e` - runs integration tests (requires running DB).
+
+## Tradeoffs
+
+- JWT access tokens are implemented without refresh tokens to keep auth flow simpler for this phase.
+- Soft delete preserves audit history but requires explicit filtering in all read and aggregate queries.
+- Docker Compose is used for local PostgreSQL consistency, while production is expected to use a managed Postgres service.
+- API docs routes (`/api/docs`, `/api/reference`) are not under `/api/v1`, which keeps OpenAPI tooling conventions straightforward.
 
 ## Deployment
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+Live API: <will be added after Phase 10 deployment>
+Swagger: <will be added after Phase 10 deployment>
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Render deployment outline (Phase 10):
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+1. Create a managed PostgreSQL instance.
+2. Configure web service build command:
+   `npm install && npx prisma generate && npx prisma migrate deploy && npm run seed`
+3. Configure start command:
+   `node dist/main.js`
+4. Set environment variables: `DATABASE_URL`, `JWT_SECRET`, `PORT=3000`, `NODE_ENV=production`.
