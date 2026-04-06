@@ -150,14 +150,14 @@ All business/API routes are prefixed with `/api/v1`.
 
 ## Deployment
 
-Live API: <will be added after Phase 10 deployment>
-Swagger: <will be added after Phase 10 deployment>
+Live API: https://zorvyn-finance-dashboard-hxmu.onrender.com
+Swagger: https://zorvyn-finance-dashboard-hxmu.onrender.com/api/docs
 
 Render deployment outline (Phase 10):
 
 1. Create a managed PostgreSQL instance.
 2. Configure web service build command:
-   `npm install && npx prisma generate && npx prisma migrate deploy && npm run seed`
+   `npm install --include=dev && npx prisma generate && npx prisma migrate deploy && npm run seed && npm run build`
 3. Configure start command:
    `node dist/main.js`
 4. Set environment variables: `DATABASE_URL`, `JWT_SECRET`, `PORT=3000`, `NODE_ENV=production`.

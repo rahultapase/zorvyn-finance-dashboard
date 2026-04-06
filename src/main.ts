@@ -43,7 +43,10 @@ async function bootstrap() {
     .addTag('Records', 'Financial records CRUD with filtering and search')
     .addTag('Dashboard', 'Aggregated analytics and summary data')
     .addServer('http://localhost:3000', 'Local server')
-    .addServer('<your-render-url>', 'Production server')
+    .addServer(
+      'https://zorvyn-finance-dashboard-hxmu.onrender.com',
+      'Production server',
+    )
     .addBearerAuth()
     .build();
 
