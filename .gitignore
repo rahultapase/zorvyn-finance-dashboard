@@ -37,6 +37,7 @@ Thumbs.db
 *.sln
 Plan.md
 scripts/
+.playwright-mcp/
 
 # Test coverage
 coverage/
