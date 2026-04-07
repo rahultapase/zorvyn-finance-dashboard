@@ -38,6 +38,7 @@ Thumbs.db
 Plan.md
 scripts/
 .playwright-mcp/
+docker.md
 
 # Test coverage
 coverage/
