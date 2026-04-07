@@ -2,3 +2,9 @@ node_modules
 dist
 .env
 *.db
+.git
+.github
+.vscode
+coverage
+test
+*.log

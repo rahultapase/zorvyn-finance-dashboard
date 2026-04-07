@@ -125,7 +125,8 @@ export class DashboardController {
   @Get('trends')
   @Roles(Role.analyst, Role.admin)
   @ApiOperation({
-    summary: 'Get monthly income and expense trends for the last 6 months (Analyst, Admin)',
+    summary:
+      'Get monthly income and expense trends for the last 6 months (Analyst, Admin)',
   })
   @ApiResponse({
     status: 200,
@@ -168,7 +169,8 @@ export class DashboardController {
   @Get('weekly')
   @Roles(Role.viewer, Role.analyst, Role.admin)
   @ApiOperation({
-    summary: 'Get income, expenses, and net balance for last 7 days (All roles)',
+    summary:
+      'Get income, expenses, and net balance for last 7 days (All roles)',
   })
   @ApiResponse({
     status: 200,

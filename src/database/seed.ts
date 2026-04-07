@@ -10,7 +10,6 @@ type SeedCategory =
   | 'Sales'
   | 'Marketing'
   | 'Consulting';
-
 interface SeedUser {
   name: string;
   email: string;
@@ -229,7 +228,9 @@ async function main(): Promise<void> {
   });
 
   if (!adminUser) {
-    throw new Error('Seed failed: admin user was not found after user seeding.');
+    throw new Error(
+      'Seed failed: admin user was not found after user seeding.',
+    );
   }
 
   const recordInputs = buildSeedRecords(adminUser.id);

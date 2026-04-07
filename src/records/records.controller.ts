@@ -108,7 +108,8 @@ export class RecordsController {
   @Get()
   @Roles(Role.analyst, Role.admin)
   @ApiOperation({
-    summary: 'List financial records with filters and pagination (Analyst, Admin)',
+    summary:
+      'List financial records with filters and pagination (Analyst, Admin)',
   })
   @ApiQuery({
     name: 'type',
@@ -225,7 +226,9 @@ export class RecordsController {
 
   @Get(':id')
   @Roles(Role.analyst, Role.admin)
-  @ApiOperation({ summary: 'Get a single financial record by ID (Analyst, Admin)' })
+  @ApiOperation({
+    summary: 'Get a single financial record by ID (Analyst, Admin)',
+  })
   @ApiParam({
     name: 'id',
     description: 'UUID of the resource',

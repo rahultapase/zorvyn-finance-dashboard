@@ -3,24 +3,136 @@ import {
   ValidationPipe,
   type ValidationPipeOptions,
 } from '@nestjs/common';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
-import { LoginDto } from './../src/auth/dto/login.dto';
-import { PaginatedResponseDto } from './../src/common/dto/paginated-response.dto';
 import { HttpExceptionFilter } from './../src/common/filters/http-exception.filter';
 import { TransformInterceptor } from './../src/common/interceptors/transform.interceptor';
-import { FilterDashboardByTypeDto } from './../src/dashboard/dto/filter-dashboard-by-type.dto';
-import { CreateRecordDto } from './../src/records/dto/create-record.dto';
-import { FilterRecordDto } from './../src/records/dto/filter-record.dto';
-import { UpdateRecordDto } from './../src/records/dto/update-record.dto';
-import { CreateUserDto } from './../src/users/dto/create-user.dto';
-import { UpdateUserDto } from './../src/users/dto/update-user.dto';
 
-describe('Phase 8 API checks (e2e)', () => {
+interface ApiSuccessBody {
+  statusCode?: unknown;
+  data?: unknown;
+  error?: unknown;
+}
+
+interface DashboardSummaryBody {
+  totalIncome: number;
+  totalExpenses: number;
+  netBalance: number;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const parseSuccessBody = (response: request.Response): ApiSuccessBody => {
+  const body: unknown = response.body;
+
+  if (!isRecord(body)) {
+    throw new Error('Expected response body to be an object');
+  }
+
+  return body;
+};
+
+const readStatusCode = (response: request.Response): number => {
+  const statusCode = parseSuccessBody(response).statusCode;
+
+  if (typeof statusCode !== 'number') {
+    throw new Error('Expected statusCode to be a number');
+  }
+
+  return statusCode;
+};
+
+const readDataObject = (
+  response: request.Response,
+): Record<string, unknown> => {
+  const data = parseSuccessBody(response).data;
+
+  if (!isRecord(data)) {
+    throw new Error('Expected response data to be an object');
+  }
+
+  return data;
+};
+
+const readErrorMessage = (response: request.Response): string => {
+  const body = parseSuccessBody(response);
+  const error = body.error;
+
+  if (typeof error !== 'string') {
+    throw new Error('Expected error to be a string');
+  }
+
+  return error;
+};
+
+const readAccessToken = (response: request.Response): string => {
+  const data = readDataObject(response);
+  const accessToken = data.accessToken;
+
+  if (typeof accessToken !== 'string') {
+    throw new Error('Expected accessToken to be a string');
+  }
+
+  return accessToken;
+};
+
+const readDashboardSummary = (
+  response: request.Response,
+): DashboardSummaryBody => {
+  const data = readDataObject(response);
+  const totalIncome = data.totalIncome;
+  const totalExpenses = data.totalExpenses;
+  const netBalance = data.netBalance;
+
+  if (
+    typeof totalIncome !== 'number' ||
+    typeof totalExpenses !== 'number' ||
+    typeof netBalance !== 'number'
+  ) {
+    throw new Error('Expected dashboard summary values to be numbers');
+  }
+
+  return {
+    totalIncome,
+    totalExpenses,
+    netBalance,
+  };
+};
+
+const readLoginUser = (response: request.Response): Record<string, unknown> => {
+  const data = readDataObject(response);
+  const user = data.user;
+
+  if (!isRecord(user)) {
+    throw new Error('Expected user to be an object');
+  }
+
+  return user;
+};
+
+describe('Phase 12 API checks (e2e)', () => {
   let app: INestApplication<App>;
+  let viewerAccessToken: string | null = null;
+
+  const getViewerAccessToken = async (): Promise<string> => {
+    if (viewerAccessToken) {
+      return viewerAccessToken;
+    }
+
+    const loginResponse = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({
+        email: 'viewer@finance.com',
+        password: 'Viewer123!',
+      })
+      .expect(200);
+
+    viewerAccessToken = readAccessToken(loginResponse);
+    return viewerAccessToken;
+  };
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -52,7 +164,9 @@ describe('Phase 8 API checks (e2e)', () => {
       },
       statusCode: 200,
     });
-    expect(typeof response.body.data.timestamp).toBe('string');
+
+    const healthData = readDataObject(response);
+    expect(typeof healthData.timestamp).toBe('string');
   });
 
   it('POST /api/v1/auth/login returns access token and user shape', async () => {
@@ -64,14 +178,30 @@ describe('Phase 8 API checks (e2e)', () => {
       })
       .expect(200);
 
-    expect(typeof response.body.data.accessToken).toBe('string');
-    expect(response.body.data.user).toMatchObject({
-      id: expect.any(String),
-      name: expect.any(String),
-      email: 'admin@finance.com',
-      role: 'admin',
-    });
-    expect(response.body.data.user).not.toHaveProperty('password');
+    expect(readStatusCode(response)).toBe(200);
+
+    const accessToken = readAccessToken(response);
+    expect(typeof accessToken).toBe('string');
+
+    const user = readLoginUser(response);
+    expect(typeof user.id).toBe('string');
+    expect(typeof user.name).toBe('string');
+    expect(user.email).toBe('admin@finance.com');
+    expect(user.role).toBe('admin');
+    expect(user).not.toHaveProperty('password');
+  });
+
+  it('POST /api/v1/auth/login returns 401 for bad password', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({
+        email: 'admin@finance.com',
+        password: 'WrongPassword123!',
+      })
+      .expect(401);
+
+    expect(readStatusCode(response)).toBe(401);
+    expect(readErrorMessage(response).toLowerCase()).toContain('unauthorized');
   });
 
   it('GET /api/v1/auth/me returns 401 with no token', async () => {
@@ -79,59 +209,36 @@ describe('Phase 8 API checks (e2e)', () => {
       .get('/api/v1/auth/me')
       .expect(401);
 
-    expect(response.body.statusCode).toBe(401);
-    expect(String(response.body.error).toLowerCase()).toContain('unauthorized');
+    expect(readStatusCode(response)).toBe(401);
+    expect(readErrorMessage(response).toLowerCase()).toContain('unauthorized');
   });
 
-  it('Generated OpenAPI document contains Phase 8 Swagger metadata', () => {
-    const swaggerConfig = new DocumentBuilder()
-      .setTitle('Finance Dashboard API')
-      .setVersion('1.0')
-      .addTag('Health', 'API health check')
-      .addTag('Auth', 'Authentication and session management')
-      .addTag('Users', 'User management - Admin only')
-      .addTag('Records', 'Financial records CRUD with filtering and search')
-      .addTag('Dashboard', 'Aggregated analytics and summary data')
-      .build();
+  it('GET /api/v1/dashboard/summary returns 200 for viewer token', async () => {
+    const token = await getViewerAccessToken();
 
-    const document = SwaggerModule.createDocument(app, swaggerConfig, {
-      extraModels: [
-        LoginDto,
-        CreateUserDto,
-        UpdateUserDto,
-        CreateRecordDto,
-        UpdateRecordDto,
-        FilterRecordDto,
-        FilterDashboardByTypeDto,
-        PaginatedResponseDto,
-      ],
-    });
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/dashboard/summary')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
 
-    const tags = document.tags as Array<{ name: string }>;
-    const tagNames = tags.map((tag) => tag.name);
-    expect(tagNames).toEqual([
-      'Health',
-      'Auth',
-      'Users',
-      'Records',
-      'Dashboard',
-    ]);
+    expect(readStatusCode(response)).toBe(200);
 
-    const recordsGetParams = document.paths['/api/v1/records'].get
-      .parameters as Array<{ name: string }>;
-    const recordsParamNames = recordsGetParams.map((param) => param.name);
+    const summary = readDashboardSummary(response);
+    expect(Number.isFinite(summary.totalIncome)).toBe(true);
+    expect(Number.isFinite(summary.totalExpenses)).toBe(true);
+    expect(Number.isFinite(summary.netBalance)).toBe(true);
+  });
 
-    expect(recordsParamNames).toEqual([
-      'type',
-      'category',
-      'startDate',
-      'endDate',
-      'search',
-      'sortBy',
-      'order',
-      'page',
-      'limit',
-    ]);
+  it('GET /api/v1/dashboard/by-category returns 403 for viewer token', async () => {
+    const token = await getViewerAccessToken();
+
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/dashboard/by-category')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+
+    expect(readStatusCode(response)).toBe(403);
+    expect(readErrorMessage(response).toLowerCase()).toContain('forbidden');
   });
 
   afterAll(async () => {

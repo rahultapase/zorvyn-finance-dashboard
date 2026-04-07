@@ -8,8 +8,6 @@ dist/
 .env
 .env.local
 .env.*.local
-.env.*
-.env.example
 
 
 # Prisma
@@ -36,6 +34,8 @@ Thumbs.db
 *.njsproj
 *.sln
 Plan.md
+Guide.md
+Explanation.md
 scripts/
 .playwright-mcp/
 docker.md
