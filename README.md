@@ -9,6 +9,12 @@ Zorvyn is a backend API for role-based finance data processing. It provides JWT 
 - Base URL: https://zorvyn-finance-dashboard-hxmu.onrender.com
 - Swagger UI: https://zorvyn-finance-dashboard-hxmu.onrender.com/api/docs
 - Scalar API Reference: https://zorvyn-finance-dashboard-hxmu.onrender.com/api/reference
+- Production database: Neon Postgres
+
+Production runtime note:
+
+- The Render web service runs on the free tier and may spin down after 15 minutes of inactivity.
+- To reduce cold starts, I added a cron job health check that pings `https://zorvyn-finance-dashboard-hxmu.onrender.com/api/v1/health` every 10 minutes.
 
 ## Tech Stack
 
@@ -16,7 +22,7 @@ Zorvyn is a backend API for role-based finance data processing. It provides JWT 
 | ---------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | Runtime                      | Node.js 18+                                        | Stable LTS runtime with strong ecosystem support for NestJS and Prisma.                       |
 | Framework                    | NestJS (TypeScript, strict mode)                   | Modular architecture, built-in dependency injection, and clear controller/service separation. |
-| Database                     | PostgreSQL                                         | Reliable relational database with strong support for transactional finance workloads.         |
+| Database                     | PostgreSQL (Neon in production)                    | Reliable relational database with strong support for transactional finance workloads.         |
 | ORM                          | Prisma                                             | Type-safe queries, clean schema migrations, and predictable data access patterns.             |
 | Authentication               | JWT + Passport (`@nestjs/jwt`, `@nestjs/passport`) | Stateless auth that integrates cleanly with guards and role checks.                           |
 | Validation                   | `class-validator` + `class-transformer`            | Declarative DTO validation and request transformation at API boundaries.                      |
@@ -24,7 +30,7 @@ Zorvyn is a backend API for role-based finance data processing. It provides JWT 
 | API Docs                     | `@nestjs/swagger` + `@scalar/nestjs-api-reference` | Swagger for standard OpenAPI docs and Scalar for a modern interactive API reference.          |
 | Password Hashing             | `bcrypt`                                           | Industry-standard password hashing with configurable salt rounds.                             |
 | Configuration                | `@nestjs/config` + dotenv                          | Centralized environment-based configuration management.                                       |
-| Local Database Orchestration | Docker Compose                                     | Consistent local PostgreSQL setup for development and review.                                 |
+| Local Database Orchestration | Docker Compose                                     | Consistent local PostgreSQL setup for development and review; production uses Neon.           |
 
 ## Prerequisites
 
@@ -60,6 +66,8 @@ JWT_SECRET=your_secret_here
 DATABASE_URL=postgresql://finance:finance@localhost:5432/finance_db
 NODE_ENV=development
 ```
+
+For production on Render, `DATABASE_URL` should be set in the Render dashboard to the Neon Postgres connection string. For local development, keep `DATABASE_URL` pointed at the local Docker PostgreSQL instance shown above.
 
 ## API Documentation Links
 
@@ -161,7 +169,7 @@ npm run test:e2e
 
 Notes:
 - `npm run test:e2e` requires a running PostgreSQL instance.
-- If your `.env` points to production/remote DB, override `DATABASE_URL` to local before running seed/e2e.
+- If your `.env` points to Neon or any other remote DB, override `DATABASE_URL` to local before running seed/e2e.
 
 ```powershell
 $env:DATABASE_URL='postgresql://finance:finance@localhost:5432/finance_db'
@@ -173,5 +181,6 @@ npm run test:e2e
 
 - JWT access tokens are implemented without refresh tokens to keep auth flow simpler for this phase.
 - Soft delete preserves audit history but requires explicit filtering in all read and aggregate queries.
-- Docker Compose is used for local PostgreSQL consistency, while production is expected to use a managed Postgres service.
+- Docker Compose is used for local PostgreSQL consistency, while production is configured to use Neon Postgres through Render environment variables.
+- Render free-tier hosting can cold-start after idle periods, so a lightweight external health ping is useful for smoother demos.
 - API docs routes (`/api/docs`, `/api/reference`) are not under `/api/v1`, which keeps OpenAPI tooling conventions straightforward.
