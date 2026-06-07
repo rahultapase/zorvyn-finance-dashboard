@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { AppModule } from './app.module';
 import { LoginDto } from './auth/dto/login.dto';
@@ -13,6 +13,73 @@ import { FilterRecordDto } from './records/dto/filter-record.dto';
 import { UpdateRecordDto } from './records/dto/update-record.dto';
 import { CreateUserDto } from './users/dto/create-user.dto';
 import { UpdateUserDto } from './users/dto/update-user.dto';
+
+const OPEN_API_SERVERS = [
+  {
+    url: 'http://localhost:3000',
+    description: 'Local server',
+  },
+  {
+    url: 'https://zorvyn-finance-dashboard-hxmu.onrender.com',
+    description: 'Production server',
+  },
+] as const;
+
+function getRequestOrigin(req: Request): string | null {
+  const forwardedProtoHeader = req.headers['x-forwarded-proto'];
+  const forwardedHostHeader = req.headers['x-forwarded-host'];
+  const forwardedProto = Array.isArray(forwardedProtoHeader)
+    ? forwardedProtoHeader[0]
+    : forwardedProtoHeader?.split(',')[0]?.trim();
+  const forwardedHost = Array.isArray(forwardedHostHeader)
+    ? forwardedHostHeader[0]
+    : forwardedHostHeader?.split(',')[0]?.trim();
+
+  if (forwardedProto && forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+
+  const host = req.get('host');
+
+  if (!host) {
+    return null;
+  }
+
+  return `${req.protocol}://${host}`;
+}
+
+function orderServersForRequest(req: Request) {
+  const requestOrigin = getRequestOrigin(req);
+
+  if (!requestOrigin) {
+    return [...OPEN_API_SERVERS];
+  }
+
+  const prioritizedServers = OPEN_API_SERVERS.filter(
+    ({ url }) => url === requestOrigin,
+  );
+  const remainingServers = OPEN_API_SERVERS.filter(
+    ({ url }) => url !== requestOrigin,
+  );
+
+  return [...prioritizedServers, ...remainingServers];
+}
+
+function patchOpenApiDocument(
+  req: Request,
+  swaggerDocument: OpenAPIObject,
+): OpenAPIObject {
+  return {
+    ...swaggerDocument,
+    servers: orderServersForRequest(req),
+  };
+}
+
+const patchDocumentOnRequest = <TRequest = unknown, TResponse = unknown>(
+  req: TRequest,
+  _res: TResponse,
+  document: OpenAPIObject,
+): OpenAPIObject => patchOpenApiDocument(req as Request, document);
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -42,13 +109,10 @@ async function bootstrap() {
     .addTag('Users', 'User management - Admin only')
     .addTag('Records', 'Financial records CRUD with filtering and search')
     .addTag('Dashboard', 'Aggregated analytics and summary data')
-    .addServer('http://localhost:3000', 'Local server')
-    .addServer(
-      'https://zorvyn-finance-dashboard-hxmu.onrender.com',
-      'Production server',
-    )
     .addBearerAuth()
     .build();
+
+  swaggerConfig.servers = [...OPEN_API_SERVERS];
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig, {
     extraModels: [
@@ -64,7 +128,11 @@ async function bootstrap() {
   });
 
   SwaggerModule.setup('api/docs', app, swaggerDocument, {
-    swaggerOptions: { persistAuthorization: true },
+    patchDocumentOnRequest,
+    swaggerOptions: {
+      persistAuthorization: true,
+      patchDocumentOnRequest,
+    },
   });
 
   const scalarModule = await import('@scalar/nestjs-api-reference');
