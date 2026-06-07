@@ -25,41 +25,45 @@ const OPEN_API_SERVERS = [
   },
 ] as const;
 
-function getRequestOrigin(req: Request): string | null {
-  const forwardedProtoHeader = req.headers['x-forwarded-proto'];
+// Resolve the host the client actually used to reach the API.
+// Prefer the proxy-provided host (Render/Neon sit behind a reverse proxy),
+// then fall back to the standard Host header.
+function getRequestHost(req: Request): string | null {
   const forwardedHostHeader = req.headers['x-forwarded-host'];
-  const forwardedProto = Array.isArray(forwardedProtoHeader)
-    ? forwardedProtoHeader[0]
-    : forwardedProtoHeader?.split(',')[0]?.trim();
   const forwardedHost = Array.isArray(forwardedHostHeader)
     ? forwardedHostHeader[0]
     : forwardedHostHeader?.split(',')[0]?.trim();
 
-  if (forwardedProto && forwardedHost) {
-    return `${forwardedProto}://${forwardedHost}`;
-  }
+  const host = forwardedHost || req.get('host');
 
-  const host = req.get('host');
-
-  if (!host) {
-    return null;
-  }
-
-  return `${req.protocol}://${host}`;
+  return host ? host.toLowerCase() : null;
 }
 
-function orderServersForRequest(req: Request) {
-  const requestOrigin = getRequestOrigin(req);
+// Extract just the host (hostname + optional port) from a configured server URL.
+function getServerHost(url: string): string | null {
+  try {
+    return new URL(url).host.toLowerCase();
+  } catch {
+    return null;
+  }
+}
 
-  if (!requestOrigin) {
+// Put the server matching the current request host first so that both
+// Swagger UI and Scalar default-select it. Matching is done by host only and is
+// intentionally protocol-independent: behind a proxy `req.protocol` is often
+// `http` even when the public URL is `https`, so comparing full origins fails.
+function orderServersForRequest(req: Request) {
+  const requestHost = getRequestHost(req);
+
+  if (!requestHost) {
     return [...OPEN_API_SERVERS];
   }
 
   const prioritizedServers = OPEN_API_SERVERS.filter(
-    ({ url }) => url === requestOrigin,
+    ({ url }) => getServerHost(url) === requestHost,
   );
   const remainingServers = OPEN_API_SERVERS.filter(
-    ({ url }) => url !== requestOrigin,
+    ({ url }) => getServerHost(url) !== requestHost,
   );
 
   return [...prioritizedServers, ...remainingServers];
